@@ -1,0 +1,238 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
+#define ERROR NULL
+#define ElementType Car
+//进入的汽车
+
+struct CarData {
+	char c;
+	int id;
+	int time;
+};
+typedef struct CarData* Car;
+
+//创建一个顺序栈来模拟停车场
+//创建一个顺序栈来存放让道出来的汽车
+
+struct SNode {
+	ElementType* Data; /* 存储元素的数组 */
+	int Top;      /* 栈顶指针 */
+	int MaxSize;       /* 堆栈最大容量 */
+};
+typedef struct SNode* Stack;
+
+//创建一个链表队列来模仿便道------------------------------
+typedef struct Node* PtrToNode;
+struct Node { /* 队列中的结点 */
+	ElementType Data;
+	PtrToNode Next;
+};
+typedef PtrToNode Position;
+
+struct QNode {
+	Position Front, Rear;  /* 队列的头、尾指针 */
+	int MaxSize;           /* 队列最大容量 */
+};
+typedef struct QNode* Queue;
+//队列的操作  链式
+Queue CreateQueue();
+bool QIsEmpty(Queue Q);
+bool addQ(Queue Q, ElementType X);
+ElementType DeleteQ(Queue Q);
+//栈的操作    顺序
+Stack CreateStack(int MaxSize);
+bool SIsFull(Stack S);
+bool Push(Stack S, ElementType X);
+bool SIsEmpty(Stack S);
+ElementType Pop(Stack S);
+ElementType Get(Stack S);
+int main() {
+	int n;   //停车场最大容量
+	Car car = NULL; //输入的停车的信息
+	Queue q = NULL;     //创造的队列
+	Stack s2;   //存放从停车场让道出来的汽车
+	Stack s1;   //存放停车场中的汽车
+	printf("请输入停车场的最大容量\n");
+	scanf("%d", &n);
+	getchar();
+	//创建一个最大容量的停车场顺序栈
+	s1 = CreateStack(n);
+	//创造一个存储让道出来的汽车的顺序栈
+	s2 = CreateStack(n);
+	//创造一个链式存储队列便道
+	q = CreateQueue();
+	char a;
+	int b, c;
+	printf("请输入指令(A到达，D离去，E输入结束)，车牌号，时间\n");
+	scanf("%c,%d,%d", &a, &b, &c);
+	getchar();
+	ElementType X;//用于存放pop出来的数据
+
+	while (a != &apos; E & apos;) {
+		if (a == &apos; A & apos;) {
+			car = (Car)malloc(sizeof(struct CarData));
+			car->c = a;
+			car->id = b;
+			car->time = c;
+			if (!SIsFull(s1)) {//停车场没满
+				Push(s1, car);
+			}
+			else {//进入便道
+				addQ(q, car);
+
+			}
+
+		}
+		else if (a == &apos; D & apos;) {
+
+			//1.循环在停车场中找要出来的汽车
+			while (!SIsEmpty(s1) && Get(s1)->id != b) {
+				X = Pop(s1);
+				Push(s2, X);
+			}
+			//停车场中还有元素
+			if (!SIsEmpty(s1)) {
+				X = Pop(s1);
+				//2.计算在停车场中的费用
+				int hour = c - X->time;
+				int money = hour;
+				printf("价钱是%d\n", money);
+				//3.释放掉节点
+				free(X);
+				//4.让道出来的汽车在循环回去
+				while (!SIsEmpty(s2)) {
+					X = Pop(s2);
+					Push(s1, X);
+				}
+				//便道上有车可以进去一个
+				if (!QIsEmpty(q)) {
+					X = DeleteQ(q);
+					X->time = c;          //开始时间按照进入停车场的时间计算
+					Push(s1, X);
+				}
+
+			}
+			else {
+				printf("没有这辆汽车");
+				while (!SIsEmpty(s2)) {
+					X = Pop(s2);
+					Push(s1, X);
+				}
+			}
+
+		}
+		else {
+			printf("指令有错\n");
+		}
+
+
+		scanf("%c,%d,%d", &a, &b, &c);
+		getchar();
+
+	}
+
+
+
+
+}
+Queue CreateQueue() {
+	Queue Q = (Queue)malloc(sizeof(struct QNode));
+	Q->Front = NULL;
+	Q->Rear = NULL;
+	return Q;
+
+}
+bool QIsEmpty(Queue Q)
+{
+	return (Q->Front == NULL);
+}
+
+bool addQ(Queue Q, ElementType X) {
+	Position p = (Position)malloc(sizeof(struct Node));
+	p->Data = X;
+	p->Next = NULL;
+	if (Q->Front == NULL && Q->Rear == NULL) {
+		Q->Front = p;
+		Q->Rear = p;
+	}
+	else {
+		Q->Rear->Next = p;
+		Q->Rear = p;
+	}
+	return true;
+}
+
+ElementType DeleteQ(Queue Q)
+{
+	Position FrontCell;
+	ElementType FrontElem;
+
+	if (QIsEmpty(Q)) {
+		printf("队列空");
+		return ERROR;
+	}
+	else {
+		FrontCell = Q->Front;
+		if (Q->Front == Q->Rear) /* 若队列只有一个元素 */
+			Q->Front = Q->Rear = NULL; /* 删除后队列置为空 */
+		else
+			Q->Front = Q->Front->Next;
+		FrontElem = FrontCell->Data;
+
+		free(FrontCell);  /* 释放被删除结点空间  */
+		return  FrontElem;
+	}
+}
+
+//--------------------------------------------------
+Stack CreateStack(int MaxSize)
+{
+	Stack S = (Stack)malloc(sizeof(struct SNode));
+	S->Data = (ElementType*)malloc(MaxSize * sizeof(ElementType));
+	S->Top = -1;
+	S->MaxSize = MaxSize;
+	return S;
+}
+
+bool SIsFull(Stack S)
+{
+	return (S->Top == S->MaxSize - 1);
+}
+
+bool Push(Stack S, ElementType X)
+{
+
+	if (SIsFull(S)) {
+		printf("堆栈满");
+		return false;
+	}
+	else {
+		S->Data[++(S->Top)] = X;
+		return true;
+	}
+}
+
+bool SIsEmpty(Stack S)
+{
+	return (S->Top == -1);
+}
+
+ElementType Pop(Stack S)
+{
+	if (SIsEmpty(S)) {
+		printf("堆栈空");
+		return ERROR; /* ERROR是ElementType的特殊值，标志错误 */
+	}
+	else
+		return (S->Data[(S->Top)--]);
+}
+ElementType Get(Stack S) {
+	if (SIsEmpty(S)) {
+		printf("堆栈空");
+		return ERROR; /* ERROR是ElementType的特殊值，标志错误 */
+	}
+	else
+		return (S->Data[S->Top]);
+}
